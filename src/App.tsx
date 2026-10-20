@@ -1,46 +1,78 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Navbar } from './components/Navbar'
+import { Hero } from './components/Hero'
+import { HowItWorks } from './components/HowItWorks'
+import { RecipePreview } from './components/RecipePreview'
+import { Benefits } from './components/Benefits'
+import { ClosingCTA } from './components/ClosingCTA'
+import { Footer } from './components/Footer'
+import { UploadDialog } from './components/UploadDialog'
+import { LoginDialog } from './components/LoginDialog'
+import { PreviewActionsContext } from './components/PreviewActions'
+
+type DialogName = 'upload' | 'login' | null
 
 export default function App() {
-  const [count, setCount] = useState(0)
+  const [dialog, setDialog] = useState<DialogName>(null)
+
+  const openUpload = useCallback(() => setDialog('upload'), [])
+  const openLogin = useCallback(() => setDialog('login'), [])
+  const closeDialog = useCallback(() => setDialog(null), [])
+
+  const actions = useMemo(() => ({ openUpload, openLogin }), [openUpload, openLogin])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (prefersReduced || !('IntersectionObserver' in window)) return
+
+    document.documentElement.classList.add('reveal-ready')
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible')
+            observer.unobserve(entry.target)
+          }
+        }
+      },
+      { rootMargin: '0px 0px -8% 0px', threshold: 0.08 },
+    )
+
+    const targets = Array.from(document.querySelectorAll('.reveal'))
+    targets.forEach((target) => observer.observe(target))
+
+    return () => {
+      observer.disconnect()
+      document.documentElement.classList.remove('reveal-ready')
+    }
+  }, [])
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#242424] text-white p-6 font-sans">
-      <div className="flex items-center justify-center gap-8 mb-8">
-        <a href="https://vite.dev" target="_blank" rel="noreferrer">
-          <img 
-            src={viteLogo} 
-            className="h-24 p-2 transition duration-300 hover:drop-shadow-[0_0_2em_#646cffaa]" 
-            alt="Vite logo" 
-          />
-        </a>
-        <a href="https://react.dev" target="_blank" rel="noreferrer">
-          <img 
-            src={reactLogo} 
-            className="h-24 p-2 transition duration-300 hover:drop-shadow-[0_0_2em_#61dafbaa] animate-[spin_20s_linear_infinite]" 
-            alt="React logo" 
-          />
-        </a>
-      </div>
+    <PreviewActionsContext.Provider value={actions}>
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-ink focus:px-5 focus:py-3 focus:text-sm focus:font-semibold focus:text-cream"
+      >
+        Lewati ke konten utama
+      </a>
 
-      <h1 className="text-4xl sm:text-5xl font-bold mb-8 tracking-tight">Vite + React</h1>
+      <Navbar />
 
-      <div className="bg-[#1a1a1a] p-8 rounded-xl border border-neutral-800 flex flex-col items-center gap-4 shadow-md max-w-md w-full">
-        <button
-          onClick={() => setCount((count) => count + 1)}
-          className="px-5 py-2.5 bg-[#1a1a1a] hover:border-[#646cff] active:scale-95 border border-transparent rounded-lg font-medium transition cursor-pointer text-sm"
-        >
-          count is {count}
-        </button>
-        <p className="text-sm text-neutral-400 text-center">
-          Edit <code className="bg-neutral-800 px-1.5 py-0.5 rounded text-neutral-200 font-mono">src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
+      <main id="main">
+        <Hero />
+        <HowItWorks />
+        <RecipePreview />
+        <Benefits />
+        <ClosingCTA />
+      </main>
 
-      <p className="text-neutral-500 text-sm mt-8">
-        Click on the Vite and React logos to learn more
-      </p>
-    </div>
+      <Footer />
+
+      <UploadDialog open={dialog === 'upload'} onClose={closeDialog} />
+      <LoginDialog open={dialog === 'login'} onClose={closeDialog} />
+    </PreviewActionsContext.Provider>
   )
 }
