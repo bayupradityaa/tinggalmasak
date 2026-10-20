@@ -7,24 +7,34 @@
 # PERINGATAN: Jangan pernah commit file ".dev.vars" yang berisi API key asli ke git!
 # ==============================================================================
 
+# ==============================================================================
+# LLM (OpenAI-compatible) — default: 9router
+# ==============================================================================
 # 1. API Key dari penyedia LLM pilihan Anda (Wajib)
-LLM_API_KEY="sk-your-api-key-here"
+# Untuk 9router: key diambil dari tabel "apiKeys" di
+#    %APPDATA%/9router/db/data.sqlite  (ada "Default Key" dan "hermes")
+#    auth\cli-secret BUKAN api key.
+LLM_API_KEY="isi-api-key-9router"
 
-# 2. Base URL endpoint LLM API (Default: OpenAI standard endpoint)
-# Pilihan endpoint populer yang kompatibel dengan format OpenAI Vision:
-# - OpenAI: https://api.openai.com/v1
-# - Google Gemini (OpenAI Compat): https://generativelanguage.googleapis.com/v1beta/openai
-# - OpenRouter: https://openrouter.ai/api/v1
-# - Groq: https://api.groq.com/openai/v1
-LLM_BASE_URL="https://api.openai.com/v1"
+# 2. Base URL endpoint LLM API
+# - 9router lokal:  http://127.0.0.1:20128/v1
+# - 9router AWS:    http://<host-publik>:20128/v1   (dipakai untuk produksi)
+# - OpenAI:        https://api.openai.com/v1
+# - Gemini (OpenAI Compat): https://generativelanguage.googleapis.com/v1beta/openai
+# - OpenRouter:    https://openrouter.ai/api/v1
+# - Groq:           https://api.groq.com/openai/v1
+LLM_BASE_URL="http://127.0.0.1:20128/v1"
 
 # 3. Model Vision yang digunakan untuk mengenali gambar makanan / bahan
-# Rekomendasi model cepat dan hemat biaya:
+# - 9router: "ngoding-aaa"  (alias combo -> model vision, mis. deepseek-v4.1-flash)
 # - OpenAI: "gpt-4o-mini"
-# - Google Gemini: "gemini-1.5-flash" atau "gemini-2.0-flash"
-# - OpenRouter: "google/gemini-2.0-flash-exp:free" atau "meta-llama/llama-3.2-11b-vision-instruct:free"
-# - Groq: "llama-3.2-11b-vision-preview"
-LLM_MODEL="gpt-4o-mini"
+# - Gemini: "gemini-2.0-flash"
+# - OpenRouter: "google/gemini-2.0-flash-exp:free"
+LLM_MODEL="ngoding-aaa"
+
+# Catatan: 9router membalas content-type text/event-stream (JSON + trailer
+# "data: [DONE]"). Jangan parse dengan res.json() langsung -> pakai
+# parseProviderPayload() di functions/_shared/analyze.ts.
 
 # ==============================================================================
 # SUPABASE (Sisi Server / Opsional untuk Pages Functions)
