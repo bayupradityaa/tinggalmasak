@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ChefHat, Clock, Info, Minus, Plus, Users } from './Icons'
+import { Ticker } from '../lib/Ticker'
 import { RECIPE } from '../data/content'
 
 function formatAmount(value: number, whole?: boolean) {
@@ -61,8 +62,9 @@ export function RecipePreview() {
           </div>
         </div>
 
-        <div className="reveal mt-10 overflow-hidden rounded-[1.75rem] border border-hairline bg-surface shadow-soft lg:mt-12">
-          <div className="grid lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
+        <div className="recipe-curtain reveal-group mt-10 overflow-hidden rounded-[1.75rem] border border-hairline bg-surface shadow-soft lg:mt-12">
+          <div className="curtain-unscale">
+            <div className="grid lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
             {/* Recipe header + ingredients */}
             <div className="border-b border-hairline p-5 sm:p-7 lg:border-b-0 lg:border-r">
               <div className="flex flex-wrap items-start justify-between gap-4">
@@ -116,7 +118,10 @@ export function RecipePreview() {
                 <div className="flex items-center gap-1.5">
                   <dt className="sr-only">Porsi</dt>
                   <Users className="h-4 w-4 text-subtle" />
-                  <dd className="tnum">{portions} porsi</dd>
+                  <dd className="tnum">
+                    <Ticker value={portions} />
+                    &nbsp;porsi
+                  </dd>
                 </div>
               </dl>
 
@@ -131,14 +136,14 @@ export function RecipePreview() {
                     </span>
                   </div>
                   <ul className="mt-2.5 space-y-0.5">
-                    {available.map((item) => (
+                    {available.map((item, index) => (
                       <li
                         key={item.name}
                         className="flex items-baseline justify-between gap-2 border-b border-hairline/70 py-1.5 last:border-0"
                       >
                         <span className="text-[0.8125rem] text-ink">{item.name}</span>
                         <span className="tnum shrink-0 text-[0.8125rem] font-semibold text-ink/75">
-                          {item.amount} {item.unit}
+                          <Ticker value={`${item.amount} ${item.unit}`} delay={index * 25} />
                         </span>
                       </li>
                     ))}
@@ -155,14 +160,18 @@ export function RecipePreview() {
                     </span>
                   </div>
                   <ul className="mt-2.5 space-y-0.5">
-                    {extra.map((item) => (
+                    {extra.map((item, index) => (
                       <li
                         key={item.name}
                         className="flex items-baseline justify-between gap-2 border-b border-hairline/70 py-1.5 last:border-0"
                       >
                         <span className="text-[0.8125rem] text-muted">{item.name}</span>
                         <span className="tnum shrink-0 text-[0.8125rem] font-medium text-muted">
-                          {item.amount ? `${item.amount} ${item.unit}` : item.unit}
+                          {item.amount ? (
+                            <Ticker value={`${item.amount} ${item.unit}`} delay={index * 25} />
+                          ) : (
+                            item.unit
+                          )}
                         </span>
                       </li>
                     ))}
@@ -217,7 +226,7 @@ export function RecipePreview() {
                       <Minus className="h-3.5 w-3.5" />
                     </button>
                     <span className="tnum w-10 text-center text-[0.75rem] font-bold text-ink">
-                      {portions}
+                      <Ticker value={portions} />
                     </span>
                     <button
                       type="button"
@@ -237,6 +246,7 @@ export function RecipePreview() {
                 </p>
               </div>
             </div>
+          </div>
           </div>
         </div>
       </div>

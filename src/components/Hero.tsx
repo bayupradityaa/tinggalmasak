@@ -2,6 +2,7 @@ import { useId, useMemo, useState } from 'react'
 import { ArrowDown, ArrowUpRight, Eye, EyeOff, Leaf } from './Icons'
 import { FridgeImage } from './FridgeImage'
 import { usePreviewActions } from './PreviewActions'
+import { useMagnetic } from '../lib/motion'
 import { FRIDGE_PINS } from '../data/content'
 
 export function Hero() {
@@ -9,6 +10,7 @@ export function Hero() {
   const [activePin, setActivePin] = useState(FRIDGE_PINS[0].id)
   const [pinsVisible, setPinsVisible] = useState(true)
   const helpId = useId()
+  const magnetic = useMagnetic<HTMLButtonElement>(5)
 
   const active = useMemo(
     () => FRIDGE_PINS.find((pin) => pin.id === activePin) ?? FRIDGE_PINS[0],
@@ -19,32 +21,51 @@ export function Hero() {
     <section id="top" aria-labelledby="hero-heading" className="relative">
       <div className="shell grid items-center gap-y-12 pb-16 pt-10 md:gap-y-14 md:pb-20 md:pt-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.02fr)] lg:gap-x-10 lg:pb-24 lg:pt-10 xl:gap-x-16">
         <div className="max-w-[36rem] lg:max-w-[34rem] xl:max-w-[37rem]">
-          <p className="eyebrow reveal">Less waste. More taste.</p>
+          <p className="eyebrow reveal" style={{ '--reveal-delay': '0ms' } as React.CSSProperties}>
+            Less waste. More taste.
+          </p>
 
           <h1
             id="hero-heading"
-            className="reveal mt-5 text-[clamp(2.55rem,7.6vw,4.4rem)] font-extrabold leading-[0.98] tracking-[-0.045em] text-ink"
-            style={{ '--reveal-delay': '60ms' } as React.CSSProperties}
+            className="hero-title reveal-group mt-5 text-[clamp(2.55rem,7.6vw,4.4rem)] font-extrabold leading-[1.02] tracking-[-0.04em] text-ink"
           >
-            Ada isi kulkas?
-            <br />
-            Ada <span className="accent-serif font-normal text-ink">ide masakan.</span>
+            <span className="line-mask">
+              <span className="line-inner" style={{ '--line-index': 0 } as React.CSSProperties}>
+                Ada isi kulkas?
+              </span>
+            </span>
+            <span className="line-mask">
+              <span className="line-inner" style={{ '--line-index': 1 } as React.CSSProperties}>
+                Ada <span className="accent-serif font-normal text-ink">ide masakan.</span>
+              </span>
+            </span>
           </h1>
 
           <p
             className="reveal mt-6 max-w-[30rem] text-[1.0625rem] leading-[1.65] text-muted sm:text-lg"
-            style={{ '--reveal-delay': '120ms' } as React.CSSProperties}
+            style={{ '--reveal-delay': '320ms' } as React.CSSProperties}
           >
             Foto bahan yang kamu punya. Temukan masakan yang bisa kamu buat hari ini.
           </p>
 
           <div
             className="reveal mt-8 flex flex-col gap-3 sm:flex-row sm:items-center"
-            style={{ '--reveal-delay': '180ms' } as React.CSSProperties}
+            style={{ '--reveal-delay': '420ms' } as React.CSSProperties}
           >
-            <button type="button" onClick={openUpload} className="btn btn-primary">
+            <button
+              type="button"
+              onClick={openUpload}
+              onMouseMove={magnetic.onMouseMove}
+              onMouseLeave={magnetic.onMouseLeave}
+              style={magnetic.magneticStyle}
+              className="btn btn-primary"
+              data-magnetic={magnetic.magneticActive ? 'true' : 'false'}
+            >
               Coba dari foto
-              <ArrowUpRight className="btn-arrow h-[1.05rem] w-[1.05rem]" />
+              <span className="btn-arrow-loop" aria-hidden="true">
+                <ArrowUpRight className="btn-arrow-loop--front h-full w-full" />
+                <ArrowUpRight className="btn-arrow-loop--back h-full w-full" />
+              </span>
             </button>
             <a href="#cara-kerja" className="btn btn-secondary">
               Lihat cara kerja
@@ -54,7 +75,7 @@ export function Hero() {
 
           <p
             className="reveal mt-5 flex items-center gap-2 text-[0.8125rem] font-medium text-subtle"
-            style={{ '--reveal-delay': '240ms' } as React.CSSProperties}
+            style={{ '--reveal-delay': '500ms' } as React.CSSProperties}
           >
             <Leaf className="h-4 w-4 text-sage" />
             Mulai dari bahan yang sudah kamu punya.
@@ -62,14 +83,14 @@ export function Hero() {
         </div>
 
         <div
-          className="reveal relative mx-auto w-full max-w-[30rem] sm:max-w-[34rem] lg:max-w-none"
-          style={{ '--reveal-delay': '160ms' } as React.CSSProperties}
+          className="reveal hero-stage relative mx-auto w-full max-w-[30rem] sm:max-w-[34rem] lg:max-w-none"
+          style={{ '--reveal-delay': '150ms' } as React.CSSProperties}
         >
           <div className="relative isolate">
             {/* Soft floor shadow directly beneath the appliance */}
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute bottom-[2%] left-1/2 -z-10 h-[7%] w-[78%] -translate-x-1/2 rounded-[50%]"
+              className="fridge-floor-shadow pointer-events-none absolute bottom-[2%] left-1/2 -z-10 h-[7%] w-[78%] rounded-[50%]"
               style={{
                 background:
                   'radial-gradient(ellipse at center, rgba(45,48,40,0.20) 0%, rgba(45,48,40,0.09) 45%, rgba(45,48,40,0) 72%)',
@@ -85,6 +106,8 @@ export function Hero() {
             <div className="absolute inset-0 mx-auto w-full max-w-[26rem] sm:max-w-[29rem] lg:max-w-[31rem] xl:max-w-[34rem]">
               {FRIDGE_PINS.map((pin, index) => {
                 const isActive = pinsVisible && pin.id === activePin
+                const exitDelay = (FRIDGE_PINS.length - 1 - index) * 45
+                const enterDelay = index * 45
                 return (
                   <div
                     key={pin.id}
@@ -95,6 +118,7 @@ export function Hero() {
                       left: `${pin.x}%`,
                       top: `${pin.y}%`,
                       transform: 'translate(-50%, -50%)',
+                      transitionDelay: `${pinsVisible ? enterDelay : exitDelay}ms`,
                       zIndex: isActive ? 20 : 10,
                     }}
                     aria-hidden={!pinsVisible}
@@ -104,17 +128,17 @@ export function Hero() {
                       onClick={() => setActivePin(pin.id)}
                       aria-pressed={pin.id === activePin}
                       aria-describedby={helpId}
-                      className={`group flex items-center gap-2.5 rounded-full py-1 pl-1 pr-3.5 transition-all duration-200 ${
+                      className={`pin-anim group flex items-center gap-2.5 rounded-full py-1 pl-1 pr-3.5 transition-colors duration-200 ${
                         pin.side === 'left' ? 'flex-row-reverse pr-1 pl-3.5' : ''
                       } ${
                         isActive
                           ? 'bg-ink text-cream shadow-elevated'
                           : 'bg-surface/95 text-ink shadow-soft ring-1 ring-hairline hover:bg-surface'
                       }`}
-                      style={{ animationDelay: `${index * 60}ms` }}
+                      style={{ '--pin-index': index } as React.CSSProperties}
                     >
                       <span
-                        className={`relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+                        className={`pin-dot-anim relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
                           isActive ? 'bg-tomato' : 'bg-sage-soft'
                         }`}
                       >

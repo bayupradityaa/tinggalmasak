@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ArrowRight, Camera, Check, Clock, Refrigerator, Sparkle } from './Icons'
+import { Ticker } from '../lib/Ticker'
 import { DETECTED_INGREDIENTS } from '../data/content'
 
 const RECIPE_MATCHES = [
@@ -33,11 +34,13 @@ export function HowItWorks() {
   const [activeIds, setActiveIds] = useState<string[]>(
     DETECTED_INGREDIENTS.filter((item) => item.defaultActive).map((item) => item.id),
   )
+  const [popId, setPopId] = useState<string | null>(null)
 
   const toggle = (id: string) => {
     setActiveIds((current) =>
       current.includes(id) ? current.filter((value) => value !== id) : [...current, id],
     )
+    setPopId(id)
   }
 
   const ranked = useMemo(() => {
@@ -75,19 +78,25 @@ export function HowItWorks() {
         </div>
 
         <div className="relative mt-12 md:mt-16">
-          <div
+          <svg
             aria-hidden="true"
-            className="pointer-events-none absolute left-[16.66%] right-[16.66%] top-[1.4rem] hidden h-px md:block"
-            style={{
-              backgroundImage:
-                'linear-gradient(to right, rgba(45,48,40,0.22) 0 6px, transparent 6px 12px)',
-              backgroundSize: '12px 1px',
-            }}
-          />
+            className="hiw-connector reveal-group pointer-events-none absolute left-[16.66%] top-[1.4rem] hidden h-[2px] w-[66.68%] md:block"
+            viewBox="0 0 100 2"
+            preserveAspectRatio="none"
+          >
+            <path
+              d="M0 1H100"
+              pathLength={1}
+              fill="none"
+              stroke="rgba(45, 48, 40, 0.28)"
+              strokeWidth="1.5"
+              vectorEffect="non-scaling-stroke"
+            />
+          </svg>
 
           <div className="grid gap-10 md:grid-cols-3 md:gap-6 lg:gap-8">
             {/* Stage 01 */}
-            <article className="reveal relative flex flex-col">
+            <article className="reveal relative flex flex-col" style={{ '--reveal-delay': '0ms' } as React.CSSProperties}>
               <div className="flex items-center gap-3">
                 <span className="relative z-10 flex h-11 w-11 items-center justify-center rounded-full border border-hairline bg-surface text-[0.75rem] font-bold text-ink shadow-soft">
                   01
@@ -171,7 +180,7 @@ export function HowItWorks() {
             </article>
 
             {/* Stage 02 */}
-            <article className="reveal relative flex flex-col" style={{ '--reveal-delay': '90ms' } as React.CSSProperties}>
+            <article className="reveal relative flex flex-col" style={{ '--reveal-delay': '120ms' } as React.CSSProperties}>
               <div className="flex items-center gap-3">
                 <span className="relative z-10 flex h-11 w-11 items-center justify-center rounded-full border border-hairline bg-surface text-[0.75rem] font-bold text-ink shadow-soft">
                   02
@@ -192,7 +201,7 @@ export function HowItWorks() {
                     Terdeteksi
                   </span>
                   <span className="tnum rounded-full bg-sage-soft px-2 py-0.5 text-[0.625rem] font-semibold text-ink">
-                    {activeIds.length}/{DETECTED_INGREDIENTS.length} aktif
+                    <Ticker value={activeIds.length} />/{DETECTED_INGREDIENTS.length} aktif
                   </span>
                 </div>
 
@@ -205,7 +214,13 @@ export function HowItWorks() {
                           type="button"
                           onClick={() => toggle(item.id)}
                           aria-pressed={isActive}
-                          className={`inline-flex min-h-9 items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[0.75rem] font-semibold transition-colors ${
+                          data-active={isActive}
+                          onAnimationEnd={() => {
+                            setPopId((current) => (current === item.id ? null : current))
+                          }}
+                          className={`chip relative inline-flex min-h-9 items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[0.75rem] font-semibold transition-colors ${
+                            popId === item.id ? 'chip--pop' : ''
+                          } ${
                             isActive
                               ? 'border-ink/15 bg-ink text-cream'
                               : 'border-hairline bg-cream text-muted hover:border-strong hover:text-ink'
@@ -218,7 +233,13 @@ export function HowItWorks() {
                           >
                             <Check className="h-2.5 w-2.5" />
                           </span>
-                          {item.label}
+                          <span className="relative">
+                            {item.label}
+                            <span
+                              aria-hidden="true"
+                              className="chip-strike absolute left-0 top-1/2 h-[1.5px] w-full -translate-x-0 rounded-full bg-ink/45"
+                            />
+                          </span>
                         </button>
                       </li>
                     )
@@ -245,7 +266,7 @@ export function HowItWorks() {
             </article>
 
             {/* Stage 03 */}
-            <article className="reveal relative flex flex-col" style={{ '--reveal-delay': '180ms' } as React.CSSProperties}>
+            <article className="reveal relative flex flex-col" style={{ '--reveal-delay': '240ms' } as React.CSSProperties}>
               <div className="flex items-center gap-3">
                 <span className="relative z-10 flex h-11 w-11 items-center justify-center rounded-full border border-hairline bg-surface text-[0.75rem] font-bold text-ink shadow-soft">
                   03
@@ -272,7 +293,10 @@ export function HowItWorks() {
                 </div>
 
                 <p className="mt-3 text-[0.8125rem] leading-snug text-muted">
-                  <span className="tnum font-bold text-ink">{best.matched}</span> dari {best.total}{' '}
+                  <span className="tnum font-bold text-ink">
+                    <Ticker value={best.matched} />
+                  </span>{' '}
+                  dari {best.total}{' '}
                   bahan untuk{' '}
                   <span className="font-semibold text-ink">{best.title.toLowerCase()}</span>{' '}
                   sudah kamu punya.
@@ -293,7 +317,8 @@ export function HowItWorks() {
                             {recipe.title}
                           </span>
                           <span className="tnum shrink-0 text-[0.625rem] font-semibold text-muted">
-                            {recipe.matched}/{recipe.total}
+                            <Ticker value={recipe.matched} delay={index * 25} />
+                            /{recipe.total}
                           </span>
                         </div>
                         <div className="mt-1.5 flex items-center gap-2">

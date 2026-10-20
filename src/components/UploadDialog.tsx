@@ -13,6 +13,9 @@ import {
 
 const MAX_BYTES = 8 * 1024 * 1024
 const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif']
+const EXIT_MS = 200
+
+type ModalState = 'closed' | 'opening' | 'open' | 'closing'
 
 type Status =
   | { kind: 'idle' }
@@ -37,6 +40,9 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
   const descId = useId()
   const statusId = useId()
 
+  const [modalState, setModalState] = useState<ModalState>('closed')
+  const modalStateRef = useRef<ModalState>('closed')
+
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [fileName, setFileName] = useState('')
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
@@ -49,21 +55,10 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
     })
   }, [])
 
-  useEffect(() => {
-    const dialog = dialogRef.current
-    if (!dialog) return
-
-    if (open && !dialog.open) {
-      dialog.showModal()
-      document.documentElement.style.overflow = 'hidden'
-    } else if (!open && dialog.open) {
-      dialog.close()
-    }
-
-    return () => {
-      document.documentElement.style.overflow = ''
-    }
-  }, [open])
+  const commitModalState = useCallback((next: ModalState) => {
+    modalStateRef.current = next
+    setModalState(next)
+  }, [])
 
   const resetState = useCallback(() => {
     clearPreview()
@@ -72,6 +67,59 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
     setDragging(false)
     if (inputRef.current) inputRef.current.value = ''
   }, [clearPreview])
+
+  useEffect(() => {
+    const dialog = dialogRef.current
+    if (!dialog) return
+
+    let rafIds: number[] = []
+    let closeTimer: number | null = null
+    const cancelPending = () => {
+      rafIds.forEach((id) => window.cancelAnimationFrame(id))
+      rafIds = []
+      if (closeTimer !== null) {
+        window.clearTimeout(closeTimer)
+        closeTimer = null
+      }
+    }
+    cancelPending()
+
+    if (open) {
+      document.documentElement.style.overflow = 'hidden'
+
+      if (modalStateRef.current === 'closed') {
+        dialog.showModal()
+        commitModalState('opening')
+      }
+
+      rafIds.push(
+        window.requestAnimationFrame(() => {
+          rafIds.push(
+            window.requestAnimationFrame(() => {
+              commitModalState('open')
+            }),
+          )
+        }),
+      )
+    } else if (modalStateRef.current !== 'closed') {
+      document.documentElement.style.overflow = ''
+      commitModalState('closing')
+      closeTimer = window.setTimeout(() => {
+        dialog.close()
+        commitModalState('closed')
+        resetState()
+      }, EXIT_MS)
+    }
+
+    return cancelPending
+  }, [open, commitModalState, resetState])
+
+  useEffect(
+    () => () => {
+      document.documentElement.style.overflow = ''
+    },
+    [],
+  )
 
   useEffect(() => () => clearPreview(), [clearPreview])
 
@@ -124,17 +172,13 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
     if (inputRef.current) inputRef.current.value = ''
   }
 
-  const handleClose = () => {
-    resetState()
-    onClose()
-  }
-
   return (
     <dialog
       ref={dialogRef}
+      className="upload-modal m-auto w-full max-w-[34rem] px-4"
       aria-labelledby={titleId}
       aria-describedby={descId}
-      onClose={handleClose}
+      onClose={onClose}
       onCancel={(event) => {
         event.preventDefault()
         onClose()
@@ -142,10 +186,16 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
       onClick={(event) => {
         if (event.target === dialogRef.current) onClose()
       }}
-      className="m-auto w-full max-w-[34rem] px-4"
     >
+      <span
+        aria-hidden="true"
+        className="upload-overlay"
+        data-modal-state={modalState}
+        onClick={onClose}
+      />
       <div
-        className="relative overflow-hidden rounded-[1.5rem] border border-hairline bg-surface shadow-elevated"
+        className="upload-panel relative overflow-hidden rounded-[1.5rem] border border-hairline bg-surface shadow-elevated"
+        data-modal-state={modalState}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 border-b border-hairline px-5 py-4 sm:px-6">
@@ -190,12 +240,17 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
                 setDragging(false)
                 acceptFile(event.dataTransfer.files?.[0])
               }}
-              className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-5 py-10 text-center transition-colors ${
+              className={`relative flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-5 py-10 text-center transition-colors ${
                 dragging
                   ? 'border-tomato bg-butter-soft'
                   : 'border-strong/60 bg-cream hover:border-ink/30 hover:bg-cream-deep/70'
               }`}
             >
+              <span aria-hidden="true" className="vf-corner vf-corner--tl" />
+              <span aria-hidden="true" className="vf-corner vf-corner--tr" />
+              <span aria-hidden="true" className="vf-corner vf-corner--bl" />
+              <span aria-hidden="true" className="vf-corner vf-corner--br" />
+
               <span className="flex h-12 w-12 items-center justify-center rounded-full bg-surface text-ink shadow-soft ring-1 ring-hairline">
                 <Upload className="h-5 w-5" />
               </span>
@@ -211,7 +266,7 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
               </span>
             </label>
           ) : (
-            <div>
+            <div className="preview-reveal" key={fileName}>
               <div className="relative overflow-hidden rounded-2xl border border-hairline bg-cream">
                 <img
                   src={previewUrl}

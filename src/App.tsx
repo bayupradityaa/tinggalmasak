@@ -7,16 +7,17 @@ import { Benefits } from './components/Benefits'
 import { ClosingCTA } from './components/ClosingCTA'
 import { Footer } from './components/Footer'
 import { UploadDialog } from './components/UploadDialog'
-import { LoginDialog } from './components/LoginDialog'
 import { PreviewActionsContext } from './components/PreviewActions'
 
-type DialogName = 'upload' | 'login' | null
+type DialogName = 'upload' | null
 
 export default function App() {
   const [dialog, setDialog] = useState<DialogName>(null)
 
   const openUpload = useCallback(() => setDialog('upload'), [])
-  const openLogin = useCallback(() => setDialog('login'), [])
+  const openLogin = useCallback(() => {
+    window.location.assign('/login')
+  }, [])
   const closeDialog = useCallback(() => setDialog(null), [])
 
   const actions = useMemo(() => ({ openUpload, openLogin }), [openUpload, openLogin])
@@ -29,24 +30,37 @@ export default function App() {
 
     document.documentElement.classList.add('reveal-ready')
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('is-visible')
-            observer.unobserve(entry.target)
-          }
-        }
-      },
-      { rootMargin: '0px 0px -8% 0px', threshold: 0.08 },
-    )
+    let cancelled = false
+    let observer: IntersectionObserver | null = null
 
-    const targets = Array.from(document.querySelectorAll('.reveal'))
-    targets.forEach((target) => observer.observe(target))
+    const start = () => {
+      if (cancelled) return
+      observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-visible')
+              observer?.unobserve(entry.target)
+            }
+          }
+        },
+        { rootMargin: '0px 0px -8% 0px', threshold: 0.08 },
+      )
+
+      const targets = Array.from(document.querySelectorAll('.reveal, .reveal-group'))
+      targets.forEach((target) => observer?.observe(target))
+    }
+
+    const timeout = new Promise<void>((resolve) => window.setTimeout(resolve, 500))
+    const fontsReady = 'fonts' in document ? Promise.race([document.fonts.ready, timeout]) : Promise.resolve()
+
+    fontsReady.then(() => {
+      requestAnimationFrame(() => requestAnimationFrame(start))
+    })
 
     return () => {
-      observer.disconnect()
-      document.documentElement.classList.remove('reveal-ready')
+      cancelled = true
+      observer?.disconnect()
     }
   }, [])
 
@@ -72,7 +86,6 @@ export default function App() {
       <Footer />
 
       <UploadDialog open={dialog === 'upload'} onClose={closeDialog} />
-      <LoginDialog open={dialog === 'login'} onClose={closeDialog} />
     </PreviewActionsContext.Provider>
   )
 }

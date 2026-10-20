@@ -19,6 +19,13 @@
     <link rel="preload" href="/fonts/plus-jakarta-sans-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/fraunces-italic-latin.woff2" as="font" type="font/woff2" crossorigin />
     <title>Lethimcook — Ada isi kulkas? Ada ide masakan.</title>
+    <script>
+      try {
+        if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObserver' in window) {
+          document.documentElement.classList.add('reveal-ready')
+        }
+      } catch (_) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

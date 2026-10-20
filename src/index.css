@@ -89,6 +89,11 @@
   --radius-md: 16px;
   --radius-lg: 24px;
   --radius-pill: 9999px;
+
+  /* Motion easings */
+  --ease-editorial: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-tactile: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-glide: cubic-bezier(0.65, 0, 0.35, 1);
 }
 
 @layer base {
@@ -271,16 +276,17 @@
    ------------------------------------------------------------------ */
 html.reveal-ready .reveal {
   opacity: 0;
-  transform: translateY(18px);
+  transform: translateY(16px);
+  will-change: transform, opacity;
   transition:
-    opacity 700ms cubic-bezier(0.16, 1, 0.3, 1),
-    transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+    opacity 650ms var(--ease-editorial),
+    transform 750ms var(--ease-editorial);
   transition-delay: var(--reveal-delay, 0ms);
 }
 
 html.reveal-ready .reveal.is-visible {
   opacity: 1;
-  transform: none;
+  transform: translateY(0);
 }
 
 @keyframes swap-in {
@@ -297,6 +303,433 @@ html.reveal-ready .reveal.is-visible {
 .swap-in {
   animation: swap-in 340ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+/* ------------------------------------------------------------------
+   Motion choreography — only active when JS + motion are available
+   ------------------------------------------------------------------ */
+
+/* 1 · Hero headline — masked line reveal */
+.hero-title .line-mask {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.16em;
+  margin-bottom: -0.16em;
+}
+
+.hero-title .line-inner {
+  display: block;
+  transform-origin: left bottom;
+}
+
+html.reveal-ready .hero-title .line-inner {
+  transform: translateY(112%) rotate(1.2deg);
+  opacity: 0;
+  will-change: transform, opacity;
+  transition:
+    transform 1000ms var(--ease-glide),
+    opacity 500ms var(--ease-glide);
+  transition-delay: calc(80ms + var(--line-index, 0) * 110ms);
+}
+
+html.reveal-ready .hero-title.is-visible .line-inner {
+  transform: translateY(0) rotate(0deg);
+  opacity: 1;
+}
+
+/* 1 · Hero supporting copy — same glide so the headline never outruns it */
+html.reveal-ready #top .reveal {
+  transition:
+    opacity 600ms var(--ease-glide) var(--reveal-delay, 0ms),
+    transform 800ms var(--ease-glide) var(--reveal-delay, 0ms);
+}
+
+/* 1 · Hero stage — fridge, floor shadow */
+.fridge-floor-shadow {
+  transform: translateX(-50%);
+}
+
+html.reveal-ready .hero-stage.reveal {
+  transform: translateY(18px) scale(0.96);
+}
+
+html.reveal-ready .hero-stage.reveal.is-visible {
+  transform: none;
+}
+
+html.reveal-ready .hero-stage .fridge-floor-shadow {
+  transform: translateX(-50%) scaleX(0.65);
+  opacity: 0;
+  transition:
+    transform 900ms var(--ease-glide),
+    opacity 400ms var(--ease-glide);
+  transition-delay: var(--reveal-delay, 160ms);
+}
+
+html.reveal-ready .hero-stage.is-visible .fridge-floor-shadow {
+  transform: translateX(-50%) scaleX(1);
+  opacity: 1;
+}
+
+/* 1 · Hero ingredient pins — dot first, then pill; staggered exit */
+@keyframes pin-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pin-dot-in {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+html.reveal-ready .hero-stage .pin-anim {
+  opacity: 0;
+  transform: translateY(6px) scale(0.86);
+}
+
+html.reveal-ready .hero-stage .pin-dot-anim {
+  transform: scale(0);
+}
+
+html.reveal-ready .hero-stage.is-visible .pin-anim {
+  animation: pin-in 480ms var(--ease-tactile) both;
+  animation-delay: calc(520ms + var(--pin-index, 0) * 75ms);
+}
+
+html.reveal-ready .hero-stage.is-visible .pin-dot-anim {
+  animation: pin-dot-in 340ms var(--ease-tactile) both;
+  animation-delay: calc(520ms + var(--pin-index, 0) * 75ms);
+}
+
+/* 2 · Diagonal arrow swap loop on the primary CTA */
+.btn-arrow-loop {
+  position: relative;
+  display: inline-flex;
+  width: 1.1em;
+  height: 1.1em;
+  overflow: hidden;
+}
+
+.btn-arrow-loop svg {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+  transition: transform 280ms var(--ease-editorial);
+}
+
+.btn-arrow-loop--front {
+  transform: translate(0, 0);
+}
+
+.btn-arrow-loop--back {
+  transform: translate(-115%, 115%);
+}
+
+.btn:hover .btn-arrow-loop--front,
+.btn:focus-visible .btn-arrow-loop--front {
+  transform: translate(115%, -115%);
+}
+
+.btn:hover .btn-arrow-loop--back,
+.btn:focus-visible .btn-arrow-loop--back {
+  transform: translate(0, 0);
+}
+
+/* 3 · How it works — connector line self-draws */
+html.reveal-ready .hiw-connector path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 900ms var(--ease-editorial) 280ms;
+}
+
+html.reveal-ready .hiw-connector.is-visible path {
+  stroke-dashoffset: 0;
+}
+
+/* 3 · Ingredient chips — strike line + recoil pop */
+.chip-strike {
+  transform: translateY(-50%) scaleX(0);
+  transform-origin: left center;
+  transition: transform 240ms var(--ease-tactile) 60ms;
+}
+
+.chip[data-active='false'] .chip-strike {
+  transform: translateY(-50%) scaleX(1);
+}
+
+@keyframes chip-pop {
+  from {
+    transform: scale(0.94);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.chip--pop {
+  animation: chip-pop 300ms var(--ease-tactile) both;
+}
+
+/* Odometer tickers (numbers / amounts) */
+.ticker {
+  display: inline-grid;
+  overflow: clip;
+  vertical-align: baseline;
+}
+
+.ticker > .ticker-layer {
+  grid-area: 1 / 1;
+  display: block;
+  will-change: transform;
+}
+
+.ticker[data-ticker-dir='up'] .ticker-layer--in {
+  animation: ticker-in-up 400ms var(--ease-editorial) both;
+}
+
+.ticker[data-ticker-dir='up'] .ticker-layer--out {
+  animation: ticker-out-up 400ms var(--ease-editorial) both;
+}
+
+.ticker[data-ticker-dir='down'] .ticker-layer--in {
+  animation: ticker-in-down 400ms var(--ease-editorial) both;
+}
+
+.ticker[data-ticker-dir='down'] .ticker-layer--out {
+  animation: ticker-out-down 400ms var(--ease-editorial) both;
+}
+
+@keyframes ticker-in-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes ticker-out-up {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+}
+
+@keyframes ticker-in-down {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes ticker-out-down {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+/* 4 · Recipe preview — curtain clip reveal */
+html.reveal-ready .recipe-curtain {
+  opacity: 0;
+  clip-path: inset(12% 8% 12% 8% round 24px);
+  transition:
+    opacity 500ms var(--ease-editorial),
+    clip-path 850ms var(--ease-editorial);
+  transition-delay: var(--reveal-delay, 60ms);
+}
+
+html.reveal-ready .recipe-curtain.is-visible {
+  opacity: 1;
+  clip-path: inset(0% 0% 0% 0% round 1.75rem);
+}
+
+html.reveal-ready .recipe-curtain .curtain-unscale {
+  transform: scale(1.1);
+  transition: transform 850ms var(--ease-editorial);
+  transition-delay: var(--reveal-delay, 60ms);
+}
+
+html.reveal-ready .recipe-curtain.is-visible .curtain-unscale {
+  transform: scale(1);
+}
+
+/* 5 · Upload modal — shutter enter/exit */
+.upload-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  border: 0;
+  padding: 0;
+  background: rgba(30, 32, 26, 0.55);
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  transition: opacity 220ms var(--ease-tactile);
+}
+
+.upload-overlay[data-modal-state='open'],
+.upload-overlay[data-modal-state='closing'] {
+  opacity: 1;
+}
+
+dialog.upload-modal::backdrop {
+  background: transparent;
+  backdrop-filter: none;
+}
+
+.upload-panel {
+  opacity: 0;
+  transform: translateY(14px) scale(0.95);
+  transition:
+    opacity 320ms var(--ease-editorial),
+    transform 320ms var(--ease-editorial);
+  will-change: transform;
+}
+
+.upload-panel[data-modal-state='open'],
+.upload-panel[data-modal-state='closing'] {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.upload-panel[data-modal-state='closing'] {
+  transform: translateY(10px) scale(0.97);
+  transition-duration: 200ms;
+}
+
+@keyframes corner-in-tl {
+  from {
+    transform: translate(-6px, -6px);
+  }
+  to {
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes corner-in-tr {
+  from {
+    transform: translate(6px, -6px);
+  }
+  to {
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes corner-in-bl {
+  from {
+    transform: translate(-6px, 6px);
+  }
+  to {
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes corner-in-br {
+  from {
+    transform: translate(6px, 6px);
+  }
+  to {
+    transform: translate(0, 0);
+  }
+}
+
+.upload-panel[data-modal-state='open'] .vf-corner--tl,
+.upload-panel[data-modal-state='closing'] .vf-corner--tl {
+  animation: corner-in-tl 320ms var(--ease-tactile) 120ms both;
+}
+
+.upload-panel[data-modal-state='open'] .vf-corner--tr,
+.upload-panel[data-modal-state='closing'] .vf-corner--tr {
+  animation: corner-in-tr 320ms var(--ease-tactile) 120ms both;
+}
+
+.upload-panel[data-modal-state='open'] .vf-corner--bl,
+.upload-panel[data-modal-state='closing'] .vf-corner--bl {
+  animation: corner-in-bl 320ms var(--ease-tactile) 120ms both;
+}
+
+.upload-panel[data-modal-state='open'] .vf-corner--br,
+.upload-panel[data-modal-state='closing'] .vf-corner--br {
+  animation: corner-in-br 320ms var(--ease-tactile) 120ms both;
+}
+
+.vf-corner {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border: 2px solid rgba(45, 48, 40, 0.55);
+  pointer-events: none;
+}
+
+.vf-corner--tl {
+  top: 10px;
+  left: 10px;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.vf-corner--tr {
+  top: 10px;
+  right: 10px;
+  border-left: 0;
+  border-bottom: 0;
+}
+
+.vf-corner--bl {
+  bottom: 10px;
+  left: 10px;
+  border-right: 0;
+  border-top: 0;
+}
+
+.vf-corner--br {
+  bottom: 10px;
+  right: 10px;
+  border-left: 0;
+  border-top: 0;
+}
+
+@keyframes preview-in {
+  from {
+    opacity: 0;
+    filter: blur(6px);
+    transform: scale(1.03);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: scale(1);
+  }
+}
+
+.preview-reveal {
+  animation: preview-in 460ms var(--ease-editorial) both;
+}
+
 
 /* ------------------------------------------------------------------
    Native dialog
@@ -330,12 +763,40 @@ dialog::backdrop {
     transition: none;
   }
 
+  html.reveal-ready .hero-title .line-inner,
+  html.reveal-ready .hero-stage .pin-anim,
+  html.reveal-ready .hero-stage .pin-dot-anim,
+  html.reveal-ready .hero-stage .fridge-floor-shadow,
+  html.reveal-ready .hiw-connector path,
+  html.reveal-ready .recipe-curtain,
+  html.reveal-ready .recipe-curtain .curtain-unscale {
+    opacity: 1;
+    transform: none;
+    clip-path: none;
+    stroke-dashoffset: 0;
+    transition: none;
+    animation: none;
+  }
+
+  .upload-overlay {
+    opacity: 1;
+    transition: none;
+  }
+
+  .upload-panel {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
     scroll-behavior: auto !important;
   }
 }
