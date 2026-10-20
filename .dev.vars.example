@@ -37,8 +37,11 @@ LLM_MODEL="ngoding-aaa"
 # parseProviderPayload() di functions/_shared/analyze.ts.
 
 # ==============================================================================
-# SUPABASE (Sisi Server / Opsional untuk Pages Functions)
+# SUPABASE
 # ==============================================================================
-# Digunakan jika Cloudflare Pages Function membutuhkan akses bypass RLS (Service Role):
-# SUPABASE_URL="https://your-project-id.supabase.co"
-# SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOi..."
+# Tidak ada variabel Supabase di sisi server. Akses database dilakukan dari
+# browser memakai anon key + RLS, jadi Pages Functions tidak perlu
+# service_role key sama sekali.
+#
+# Konfigurasi Supabase untuk sisi klien ada di ".env.local"
+# (VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY) -> lihat ".env.example".

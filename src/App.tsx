@@ -1,9 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { AlertCircle, ChefHat, Loader2, Sparkles, Upload } from 'lucide-react'
 import type { AnalyzeResponse, Ingredient, RecipeSuggestion } from './types/recipe'
+import { useAuth } from './auth/auth-context'
+import AuthBar from './components/AuthBar'
+import AuthModal from './components/AuthModal'
+import HistoryPanel from './components/HistoryPanel'
+import SaveResultBar from './components/SaveResultBar'
 
 const MAX_EDGE = 1024
 const JPEG_QUALITY = 0.82
+
+type Tab = 'scan' | 'riwayat'
 
 function loadImage(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -42,7 +49,7 @@ function IngredientChip({ ingredient }: { ingredient: Ingredient }) {
     <li className="rounded-full bg-white/10 px-3 py-1.5 text-sm text-white/90 ring-1 ring-white/15">
       <span className="font-medium">{ingredient.name}</span>
       {ingredient.estimatedQuantity && (
-        <span className="text-white/50"> · {ingredient.estimatedQuantity}</span>
+        <span className="text-white/50"> &middot; {ingredient.estimatedQuantity}</span>
       )}
     </li>
   )
@@ -56,9 +63,11 @@ function RecipeCard({ recipe, index }: { recipe: RecipeSuggestion; index: number
           <span className="mr-2 text-emerald-400">{index + 1}.</span>
           {recipe.title}
         </h3>
-        <span className="shrink-0 rounded-full bg-emerald-400/15 px-2.5 py-1 text-xs font-medium text-emerald-300">
-          {recipe.difficulty}
-        </span>
+        {recipe.difficulty && (
+          <span className="shrink-0 rounded-full bg-emerald-400/15 px-2.5 py-1 text-xs font-medium text-emerald-300">
+            {recipe.difficulty}
+          </span>
+        )}
       </div>
 
       {recipe.description && (
@@ -123,7 +132,10 @@ function RecipeCard({ recipe, index }: { recipe: RecipeSuggestion; index: number
 }
 
 export default function App() {
+  const { user } = useAuth()
   const fileInput = useRef<HTMLInputElement>(null)
+  const [tab, setTab] = useState<Tab>('scan')
+  const [authOpen, setAuthOpen] = useState(false)
   const [preview, setPreview] = useState<string | null>(null)
   const [imageData, setImageData] = useState<string | null>(null)
   const [notes, setNotes] = useState('')
@@ -177,7 +189,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100">
       <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:py-16">
-        <header className="mb-10 text-center">
+        <header className="mb-8 text-center">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-300 ring-1 ring-emerald-400/20">
             <ChefHat className="size-3.5" />
             tinggalmasak.ai.id
@@ -188,110 +200,150 @@ export default function App() {
           <p className="mx-auto mt-3 max-w-lg text-sm text-neutral-400">
             Upload foto isi kulkas, dapat 5 resep rumahan beserta bahan dan langkah masaknya.
           </p>
-        </header>
 
-        <section className="rounded-2xl bg-white/5 p-5 ring-1 ring-white/10">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-            <button
-              type="button"
-              onClick={() => fileInput.current?.click()}
-              className="relative flex h-40 w-full shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed border-white/20 bg-neutral-900/60 transition hover:border-emerald-400/50 sm:w-40"
-            >
-              {preview ? (
-                <img src={preview} alt="Preview bahan" className="size-full object-cover" />
-              ) : (
-                <span className="flex flex-col items-center gap-2 text-neutral-500">
-                  <Upload className="size-6" />
-                  <span className="text-xs">Pilih / ambil foto</span>
-                </span>
-              )}
-            </button>
-
-            <div className="flex-1 space-y-3">
-              <input
-                ref={fileInput}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={(e) => handleFile(e.target.files?.[0])}
-              />
-
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-neutral-400">
-                  Catatan (opsional)
-                </span>
-                <input
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="misal: tidak pakai sambal, mau cepat jadi"
-                  className="w-full rounded-lg border border-white/10 bg-neutral-900 px-3 py-2 text-sm outline-none placeholder:text-neutral-600 focus:border-emerald-400/60"
-                />
-              </label>
-
-              <button
-                type="button"
-                onClick={analyze}
-                disabled={!imageData || loading}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-400 px-4 py-2.5 text-sm font-semibold text-neutral-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" />
-                    Menganalisis... {elapsed} dtk
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="size-4" />
-                    {result ? 'Analisis ulang' : 'Cari 5 ide menu'}
-                  </>
-                )}
-              </button>
-
-              {loading && (
-                <p className="text-xs text-neutral-500">
-                  Membaca foto + menyusun resep. biasanya 15-30 detik, jangan tutup halaman.
-                </p>
-              )}
-            </div>
+          <div className="mt-5 flex justify-center">
+            <AuthBar onOpenAuth={() => setAuthOpen(true)} />
           </div>
 
-          {error && (
-            <p className="mt-4 flex items-start gap-2 rounded-lg bg-red-500/10 p-3 text-sm text-red-300">
-              <AlertCircle className="mt-0.5 size-4 shrink-0" />
-              {error}
-            </p>
-          )}
-        </section>
+          <nav className="mx-auto mt-6 grid w-full max-w-xs grid-cols-2 gap-1 rounded-xl bg-white/5 p-1 text-sm">
+            {(['scan', 'riwayat'] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setTab(t)}
+                className={`rounded-lg px-3 py-2 transition ${
+                  tab === t ? 'bg-emerald-400 font-medium text-neutral-950' : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                {t === 'scan' ? 'Scan' : 'Riwayat'}
+              </button>
+            ))}
+          </nav>
+        </header>
 
-        {result && (
+        {tab === 'riwayat' ? (
+          user ? (
+            <HistoryPanel />
+          ) : (
+            <p className="rounded-2xl bg-white/5 p-6 text-center text-sm text-neutral-400 ring-1 ring-white/10">
+              Masuk dulu untuk melihat riwayat dan resep tersimpan.
+            </p>
+          )
+        ) : (
           <>
-            <section className="mt-10">
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-400">
-                Bahan terdeteksi
-              </h2>
-              {result.detectedIngredients.length === 0 ? (
-                <p className="text-sm text-neutral-500">Tidak ada bahan yang terbaca jelas.</p>
-              ) : (
-                <ul className="flex flex-wrap gap-2">
-                  {result.detectedIngredients.map((ingredient, i) => (
-                    <IngredientChip key={`${ingredient.name}-${i}`} ingredient={ingredient} />
-                  ))}
-                </ul>
+            <section className="rounded-2xl bg-white/5 p-5 ring-1 ring-white/10">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                <button
+                  type="button"
+                  onClick={() => fileInput.current?.click()}
+                  className="relative flex h-40 w-full shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed border-white/20 bg-neutral-900/60 transition hover:border-emerald-400/50 sm:w-40"
+                >
+                  {preview ? (
+                    <img src={preview} alt="Preview bahan" className="size-full object-cover" />
+                  ) : (
+                    <span className="flex flex-col items-center gap-2 text-neutral-500">
+                      <Upload className="size-6" />
+                      <span className="text-xs">Pilih / ambil foto</span>
+                    </span>
+                  )}
+                </button>
+
+                <div className="flex-1 space-y-3">
+                  <input
+                    ref={fileInput}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={(e) => handleFile(e.target.files?.[0])}
+                  />
+
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium text-neutral-400">
+                      Catatan (opsional)
+                    </span>
+                    <input
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="misal: tidak pakai sambal, mau cepat jadi"
+                      className="w-full rounded-lg border border-white/10 bg-neutral-900 px-3 py-2 text-sm outline-none placeholder:text-neutral-600 focus:border-emerald-400/60"
+                    />
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={analyze}
+                    disabled={!imageData || loading}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-400 px-4 py-2.5 text-sm font-semibold text-neutral-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        Menganalisis... {elapsed} dtk
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="size-4" />
+                        {result ? 'Analisis ulang' : 'Cari 5 ide menu'}
+                      </>
+                    )}
+                  </button>
+
+                  {loading && (
+                    <p className="text-xs text-neutral-500">
+                      Membaca foto + menyusun resep. biasanya 15-30 detik, jangan tutup halaman.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {error && (
+                <p className="mt-4 flex items-start gap-2 rounded-lg bg-red-500/10 p-3 text-sm text-red-300">
+                  <AlertCircle className="mt-0.5 size-4 shrink-0" />
+                  {error}
+                </p>
               )}
             </section>
 
-            <section className="mt-10 space-y-4">
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-400">
-                {result.recipes.length} ide menu
-              </h2>
-              {result.recipes.map((recipe, i) => (
-                <RecipeCard key={recipe.id || i} recipe={recipe} index={i} />
-              ))}
-            </section>
+            {result && (
+              <>
+                <section className="mt-10">
+                  <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-400">
+                    Bahan terdeteksi
+                  </h2>
+                  {result.detectedIngredients.length === 0 ? (
+                    <p className="text-sm text-neutral-500">Tidak ada bahan yang terbaca jelas.</p>
+                  ) : (
+                    <ul className="flex flex-wrap gap-2">
+                      {result.detectedIngredients.map((ingredient, i) => (
+                        <IngredientChip key={`${ingredient.name}-${i}`} ingredient={ingredient} />
+                      ))}
+                    </ul>
+                  )}
+                </section>
+
+                <section className="mt-10 space-y-4">
+                  <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-400">
+                    {result.recipes.length} ide menu
+                  </h2>
+                  {result.recipes.map((recipe, i) => (
+                    <RecipeCard key={recipe.id || i} recipe={recipe} index={i} />
+                  ))}
+                </section>
+
+                <SaveResultBar
+                  result={result}
+                  imageData={imageData}
+                  notes={notes}
+                  onRequireAuth={() => setAuthOpen(true)}
+                />
+              </>
+            )}
           </>
         )}
       </div>
+
+      {authOpen && <AuthModal onClose={() => setAuthOpen(false)} />}
     </div>
   )
 }

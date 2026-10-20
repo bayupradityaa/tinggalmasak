@@ -25,9 +25,15 @@ tinggalmasak/
 │  ├─ _shared/             # kode inti: env + analyze
 │  └─ api/analyze.ts       # POST /api/analyze
 ├─ src/                    # frontend React + Vite
+│  ├─ auth/                # AuthProvider + context (Supabase session)
+│  ├─ components/          # AuthBar, AuthModal, HistoryPanel, SaveResultBar
+│  ├─ lib/                 # supabase client + akses data (RLS)
+│  └─ types/               # tipe recipe + baris DB
+├─ supabase/migrations/    # SQL skema: tabel + RLS + storage
 ├─ scripts/                # cek otomatis (node, tanpa framework)
 ├─ wrangler.toml           # config Cloudflare Pages
-├─ .dev.vars.example       # template env untuk lokal
+├─ .dev.vars.example       # template env server-side
+├─ .env.example            # template env sisi klien (VITE_*)
 └─ package.json
 ```
 
@@ -35,9 +41,20 @@ tinggalmasak/
 
 ## 3. Cara Kerja
 
+Dua jalur terpisah:
+
 ```
 web (React/Vite) ──base64──▶ /api/analyze ──▶ 9router vision ──▶ { detectedIngredients, recipes[] }
+        │                                        (tamu boleh, tanpa login)
+        │
+        └──▶ supabase-js (anon key + RLS) ──▶ auth.users / profiles / analyses / saved_recipes
+             (hanya saat user login: simpan hasil, riwayat, favorit)      │
+                                                                        └──▶ Storage: kitchen-photos (bucket privat)
 ```
+
+Pola keamanan: **tidak ada service_role key di mana pun**. Browser pakai anon key,
+databasetegeri sendiri yang membatasi akses lewat RLS (`auth.uid()`). Pages Functions
+tidak memegang secret Supabase sama sekali.
 
 Respons `recipes[]` (dipakai frontend):
 
@@ -61,6 +78,22 @@ Respons `recipes[]` (dipakai frontend):
 ```
 
 Server menormalisasi hasil LLM: maximal 5 resep, array yang hilang jadi `[]`, `id` kosong auto diisi `resep-N`.
+
+### 3.1 Database & Akun (Supabase)
+
+| Tabel | Isi |who bisa akses |
+| --- | --- | --- |
+| `profiles` | 1:1 dengan `auth.users` (nama, avatar) | pemilik saja |
+| `analyses` | riwayat hasil scan (bahan + resep jsonb, path foto) | pemilik saja |
+| `saved_recipes` | resep favorit | pemilik saja |
+
+Semua tabel punya RLS aktif dengan policy `auth.uid() = user_id` (atau `= id`).
+Bucket `kitchen-photos` = privat, path foto selalu `<user_id>/<file>`.
+
+Aturan main:
+- **Analisis tetap terbuka untuk tamu** (gratis untuk coba). Login baru dibutuhkan
+  kalau mau **simpan hasil**, lihat riwayat, atau favoritkan resep.
+- Foto kulkas di-upload ke Storage privat; ditampilkan lewat signed URL (berlaku 1 jam).
 
 ---
 
@@ -86,7 +119,38 @@ LLM_BASE_URL="http://127.0.0.1:20128/v1"
 LLM_MODEL="ngoding-aaa"
 ```
 
-### 4.2 Jalankan
+Env sisi klien (Supabase) terpisah, di `.env.local`:
+
+```bash
+cp .env.example .env.local      # Windows: copy .env.example .env.local
+```
+
+```
+VITE_SUPABASE_URL="https://<project-id>.supabase.co"
+VITE_SUPABASE_ANON_KEY="<anon public key>"
+```
+
+> `.env.local` sudah ter-ignore git. Jangan pernah commit nilai aslinya.
+> Anon key aman dipublikasikan (RLS yang menjaga), tapi tetap best practice tidak di-commit.
+
+### 4.2 Siapkan database Supabase
+
+1. Dashboard Supabase → **SQL Editor → New query**.
+2. Paste isi `supabase/migrations/0001_init.sql` → **Run**.
+   (atau pakai CLI: `supabase db push`)
+3. **Authentication → Providers → Email**: matikan "Confirm email" kalau mau user langsung
+   masuk setelah daftar (untuk testing cepat).
+4. **Authentication → URL Configuration → Redirect URLs**: tambah
+   `http://localhost:5173` dan domain produksi `https://tinggalmasak.ai.id`.
+5. **Authentication → Providers → Google** (kalau mau login Google):
+   - buat OAuth Client ID di Google Cloud Console (Web application),
+   - Authorized redirect URI: `https://<project-id>.supabase.co/auth/v1/callback`,
+   - copy Client ID + Client Secret ke provider Google di Supabase.
+
+Tanpa Supabase yang sudah dikonfigurasi, aplikasi tetap jalan sebagai tamu
+(analisis normal, tombol simpan dimatikan).
+
+### 4.3 Jalankan
 
 Dua terminal:
 
@@ -101,10 +165,10 @@ npm run dev
 
 Buka `http://localhost:5173`. Vite mem-proxy `/api` ke `http://localhost:8788` (lihat `vite.config.ts`).
 
-### 4.3 Cek otomatis
+### 4.4 Cek otomatis
 
 ```bash
-npm run check   # assert parser payload LLM (JSON / SSE / code fence)
+npm run check   # assert parser payload LLM (JSON / SSE / code fence) + skema DB/RLS
 npm run lint    # oxlint
 npm run build   # tsc -b + vite build
 ```
@@ -150,6 +214,12 @@ Dashboard: **Pages → project → Settings → Environment variables → Add**.
 | `LLM_API_KEY` | ya | key 9router (produksi: key `hermes` untuk instance AWS) |
 | `LLM_BASE_URL` | tidak | default `https://api.openai.com/v1`. Pakai URL publik 9router AWS, mis. `http://<host-9router>:20128/v1` |
 | `LLM_MODEL` | tidak | default `gpt-4o-mini` (harus model vision). Pakai `ngoding-aaa` untuk 9router |
+| `VITE_SUPABASE_URL` | ya (kalau mau login) | `https://<project-id>.supabase.co` — dipakai saat build |
+| `VITE_SUPABASE_ANON_KEY` | ya (kalau mau login) | anon public key — dipakai saat build |
+
+> `VITE_*` = variabel **build-time** (Vite menyuntik ke bundle). Set di Pages → Settings →
+> Environment variables, lalu **redeploy** supaya ter-build ulang.
+> `VITE_SUPABASE_ANON_KEY` aman di bundle (itu gunanya); RLS yang membatasi data.
 
 CLI juga bisa:
 
@@ -228,6 +298,13 @@ curl -X POST https://tinggalmasak.ai.id/api/analyze \
 # balas: {"success":true,"detectedIngredients":[...],"recipes":[...]} (5 resep)
 ```
 
+Cek alur akun (manual, di browser):
+
+1. Daftar akun baru → masuk (atau "Lanjut dengan Google").
+2. Scan foto → tekan **Simpan hasil** → buka tab **Riwayat** → data muncul.
+3. Refresh halaman → riwayat tetap ada (tanda sudah tersimpan di DB).
+4. Logout → riwayat kosong (data milik user lain tidak terlihat).
+
 ---
 
 ## 8. Troubleshooting
@@ -242,6 +319,10 @@ curl -X POST https://tinggalmasak.ai.id/api/analyze \
 | `413` / "gambar terlalu besar" | Base64 > 8 MB. Frontend otomatis perkecil ke max 1024 px JPEG kualitas 0.82. |
 | Frontend "Failed to fetch" saat lokal | Terminal `wrangler pages dev` mati, atau port bukan 8788. |
 | `405` saat deploy | Build output salah → harus `dist`, build command `npm run build`. |
+| Tombol "Simpan" tidak aktif | Supabase belum dikonfigurasi → isi `.env.local` (lokal) / env `VITE_*` (produksi). |
+| `Failed to fetch` / `row-level security violation` | Tabel dibuat tanpa policy RLS, atau policy tidak pakai `auth.uid()`. Jalankan ulang `supabase/migrations/0001_init.sql`. |
+| Foto riwayat tidak muncul | Signed URL expired (1 jam) → refresh halaman. |
+| Login Google balik ke halaman login | Redirect URL belum didaftarkan di Supabase → Settings → URL Configuration. |
 
 ---
 
@@ -266,7 +347,9 @@ npx wrangler pages deploy dist --project-name tinggalmasak
 
 - **Batas upload**: 8 MB base64 (~6 MB file) di server; frontend otomatis perkecil ke max 1024 px JPEG kualitas 0.82.
 - **Waktu proses**: 15–30 detik tipikal (LLM vision). Frontend menampilkan timer.
-- **Tanpa state**: tidak ada database/KV. Semua hasil纯属 on-demand, tidak disimpan.
+- **Penyimpanan**: hasil analisis hanya disimpan kalau user login dan menekan
+  "Simpan hasil". Tamu tidak meninggalkan jejak. Foto disimpan di bucket privat
+  Supabase (RLS: hanya pemilik yang bisa akses).
 
 ---
 

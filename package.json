@@ -7,11 +7,12 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "check": "node scripts/check-llm-payload.ts",
+    "check": "node scripts/check-llm-payload.ts && node scripts/check-db-schema.ts",
     "scan:secrets": "node scripts/scan-secrets.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.118.0",
     "@tailwindcss/vite": "^4.3.3",
     "lucide-react": "^1.59.0",
     "react": "^19.3.1",
