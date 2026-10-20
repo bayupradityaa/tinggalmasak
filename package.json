@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "check": "node scripts/check-llm-payload.ts",
+    "scan:secrets": "node scripts/scan-secrets.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
