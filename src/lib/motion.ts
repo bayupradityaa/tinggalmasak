@@ -66,13 +66,13 @@ export function useMagnetic<T extends HTMLElement>(strength = 5): MagneticResult
     ? {}
     : offset
       ? {
-          transform: `translate(${offset.x.toFixed(2)}px, ${offset.y.toFixed(2)}px)`,
-          transition: 'transform 90ms cubic-bezier(0.22, 1, 0.36, 1)',
-        }
+        transform: `translate(${offset.x.toFixed(2)}px, ${offset.y.toFixed(2)}px)`,
+        transition: 'transform 90ms cubic-bezier(0.22, 1, 0.36, 1)',
+      }
       : {
-          transform: 'translate(0px, 0px)',
-          transition: 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
-        }
+        transform: 'translate(0px, 0px)',
+        transition: 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
+      }
 
   return { onMouseMove, onMouseLeave, magneticStyle }
 }
