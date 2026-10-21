@@ -45,6 +45,7 @@ wrangler.local.toml
 
 # Dokumen internal tidak ikut repo publik
 *.md
+!README.md
 
 # Editor directories and files
 .vscode/*
