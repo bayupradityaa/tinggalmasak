@@ -8,4 +8,10 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    // API jalan di wrangler pages dev (port 8788), dev server vite proxy ke sana.
+    proxy: {
+      '/api': 'http://localhost:8788',
+    },
+  },
 })

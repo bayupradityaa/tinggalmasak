@@ -1,91 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Navbar } from './components/Navbar'
-import { Hero } from './components/Hero'
-import { HowItWorks } from './components/HowItWorks'
-import { RecipePreview } from './components/RecipePreview'
-import { Benefits } from './components/Benefits'
-import { ClosingCTA } from './components/ClosingCTA'
-import { Footer } from './components/Footer'
-import { UploadDialog } from './components/UploadDialog'
-import { PreviewActionsContext } from './components/PreviewActions'
+import Dashboard from './pages/Dashboard'
+import Landing from './pages/Landing'
 
-type DialogName = 'upload' | null
-
+/**
+ * Routing tanpa dependency: cukup baca path URL.
+ * Dua halaman saja — beranda (/) dan dashboard (/dashboard).
+ */
 export default function App() {
-  const [dialog, setDialog] = useState<DialogName>(null)
-
-  const openUpload = useCallback(() => setDialog('upload'), [])
-  const openLogin = useCallback(() => {
-    window.location.assign('/login')
-  }, [])
-  const closeDialog = useCallback(() => setDialog(null), [])
-
-  const actions = useMemo(() => ({ openUpload, openLogin }), [openUpload, openLogin])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-
-    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (prefersReduced || !('IntersectionObserver' in window)) return
-
-    document.documentElement.classList.add('reveal-ready')
-
-    let cancelled = false
-    let observer: IntersectionObserver | null = null
-
-    const start = () => {
-      if (cancelled) return
-      observer = new IntersectionObserver(
-        (entries) => {
-          for (const entry of entries) {
-            if (entry.isIntersecting) {
-              entry.target.classList.add('is-visible')
-              observer?.unobserve(entry.target)
-            }
-          }
-        },
-        { rootMargin: '0px 0px -8% 0px', threshold: 0.08 },
-      )
-
-      const targets = Array.from(document.querySelectorAll('.reveal, .reveal-group'))
-      targets.forEach((target) => observer?.observe(target))
-    }
-
-    const timeout = new Promise<void>((resolve) => window.setTimeout(resolve, 500))
-    const fontsReady = 'fonts' in document ? Promise.race([document.fonts.ready, timeout]) : Promise.resolve()
-
-    fontsReady.then(() => {
-      requestAnimationFrame(() => requestAnimationFrame(start))
-    })
-
-    return () => {
-      cancelled = true
-      observer?.disconnect()
-    }
-  }, [])
-
-  return (
-    <PreviewActionsContext.Provider value={actions}>
-      <a
-        href="#main"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-ink focus:px-5 focus:py-3 focus:text-sm focus:font-semibold focus:text-cream"
-      >
-        Lewati ke konten utama
-      </a>
-
-      <Navbar />
-
-      <main id="main">
-        <Hero />
-        <HowItWorks />
-        <RecipePreview />
-        <Benefits />
-        <ClosingCTA />
-      </main>
-
-      <Footer />
-
-      <UploadDialog open={dialog === 'upload'} onClose={closeDialog} />
-    </PreviewActionsContext.Provider>
-  )
+  const path = window.location.pathname.replace(/\/+$/, '') || '/'
+  return path === '/dashboard' ? <Dashboard /> : <Landing />
 }

@@ -25,9 +25,9 @@ interface MagneticResult<T extends HTMLElement> {
     transform?: string
     transition?: string
   }
-  magneticActive: boolean
 }
 
+/** Tarik elemen sedikit ke arah kursor. Hanya aktif di perangkat dengan pointer presisi. */
 export function useMagnetic<T extends HTMLElement>(strength = 5): MagneticResult<T> {
   const reduced = usePrefersReducedMotion()
   const [finePointer, setFinePointer] = useState<boolean>(() =>
@@ -74,5 +74,5 @@ export function useMagnetic<T extends HTMLElement>(strength = 5): MagneticResult
           transition: 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
         }
 
-  return { onMouseMove, onMouseLeave, magneticStyle, magneticActive: enabled }
+  return { onMouseMove, onMouseLeave, magneticStyle }
 }

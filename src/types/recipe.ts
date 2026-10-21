@@ -19,14 +19,14 @@ export interface Ingredient {
 export interface RecipeSuggestion {
   id: string
   title: string
-  description: string
-  prepTime: string
-  cookTime: string
-  difficulty: 'Mudah' | 'Sedang' | 'Sulit'
+  description?: string
+  prepTime?: string
+  cookTime?: string
+  difficulty?: string
   caloriesApprox?: string
-  ingredientsUsed: string[]
+  ingredientsUsed?: string[]
   additionalIngredientsNeeded?: string[]
-  steps: string[]
+  steps?: string[]
   chefTips?: string
 }
 
