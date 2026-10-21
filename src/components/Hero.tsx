@@ -1,214 +1,83 @@
-import { useId, useMemo, useState } from 'react'
-import { ArrowDown, ArrowUpRight, Eye, EyeOff, Leaf } from './Icons'
-import { FridgeImage } from './FridgeImage'
-import { usePreviewActions } from './PreviewActions'
-import { useMagnetic } from '../lib/motion'
-import { FRIDGE_PINS } from '../data/content'
+import type { CSSProperties } from 'react'
+import { ArrowRight, Camera, Clock, ShieldCheck } from 'lucide-react'
+import fridgeImage from '../assets/fridge-cutout.webp'
+import Magnetic from './Magnetic'
 
-export function Hero() {
-  const { openUpload } = usePreviewActions()
-  const [activePin, setActivePin] = useState(FRIDGE_PINS[0].id)
-  const [pinsVisible, setPinsVisible] = useState(true)
-  const helpId = useId()
-  const magnetic = useMagnetic<HTMLButtonElement>(5)
+const TRUST = [
+  { icon: Camera, label: 'Satu foto per analisis' },
+  { icon: Clock, label: 'Selesai dalam 15–30 detik' },
+  { icon: ShieldCheck, label: 'Foto tidak dibagikan' },
+]
 
-  const active = useMemo(
-    () => FRIDGE_PINS.find((pin) => pin.id === activePin) ?? FRIDGE_PINS[0],
-    [activePin],
-  )
-
+export default function Hero() {
   return (
-    <section id="top" aria-labelledby="hero-heading" className="relative">
-      <div className="shell grid items-center gap-y-12 pb-16 pt-10 md:gap-y-14 md:pb-20 md:pt-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.02fr)] lg:gap-x-10 lg:pb-24 lg:pt-10 xl:gap-x-16">
-        <div className="max-w-[36rem] lg:max-w-[34rem] xl:max-w-[37rem]">
-          <p className="eyebrow reveal" style={{ '--reveal-delay': '0ms' } as React.CSSProperties}>
-            Less waste. More taste.
-          </p>
+    <section id="top" className="relative overflow-hidden">
+      <div aria-hidden className="aurora pointer-events-none absolute inset-0 -z-10" />
 
+      <div className="mx-auto grid w-full max-w-6xl gap-14 px-5 pt-16 pb-16 sm:px-8 sm:pt-24 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-16 lg:pb-24">
+        <div>
           <h1
-            id="hero-heading"
-            className="hero-title reveal-group mt-5 text-[clamp(2.55rem,7.6vw,4.4rem)] font-extrabold leading-[1.02] tracking-[-0.04em] text-ink"
+            className="rise display-1"
+            style={{ '--d': '0ms' } as CSSProperties}
           >
-            <span className="line-mask">
-              <span className="line-inner" style={{ '--line-index': 0 } as React.CSSProperties}>
-                Ada isi kulkas?
-              </span>
-            </span>
-            <span className="line-mask">
-              <span className="line-inner" style={{ '--line-index': 1 } as React.CSSProperties}>
-                Ada <span className="accent-serif font-normal text-ink">ide masakan.</span>
-              </span>
-            </span>
+            Foto isi kulkas.{' '}
+            <span className="text-flame-600">Lima menu siap dimasak.</span>
           </h1>
 
           <p
-            className="reveal mt-6 max-w-[30rem] text-[1.0625rem] leading-[1.65] text-muted sm:text-lg"
-            style={{ '--reveal-delay': '320ms' } as React.CSSProperties}
+            className="rise lede measure mt-6"
+            style={{ '--d': '90ms' } as CSSProperties}
           >
-            Foto bahan yang kamu punya. Temukan masakan yang bisa kamu buat hari ini.
+            Model vision membaca bahan yang benar-benar terlihat, memperkirakan takarannya, lalu
+            menyusun lima resep lengkap dengan bahan tambahan, langkah memasak, dan catatan koki.
           </p>
 
           <div
-            className="reveal mt-8 flex flex-col gap-3 sm:flex-row sm:items-center"
-            style={{ '--reveal-delay': '420ms' } as React.CSSProperties}
+            className="rise mt-9 flex flex-wrap items-center gap-3"
+            style={{ '--d': '180ms' } as CSSProperties}
           >
-            <button
-              type="button"
-              onClick={openUpload}
-              onMouseMove={magnetic.onMouseMove}
-              onMouseLeave={magnetic.onMouseLeave}
-              style={magnetic.magneticStyle}
-              className="btn btn-primary"
-              data-magnetic={magnetic.magneticActive ? 'true' : 'false'}
+            <Magnetic>
+              <a
+                href="/dashboard"
+                className="btn-arrow group inline-flex items-center gap-2 rounded-xl bg-flame-500 px-5 py-3 text-sm font-semibold text-on-accent shadow-glow transition-colors hover:bg-flame-600"
+              >
+                Mulai analisis
+                <ArrowRight className="size-4" />
+              </a>
+            </Magnetic>
+            <a
+              href="#cara-kerja"
+              className="group inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-5 py-3 text-sm font-semibold text-fg-soft transition-colors hover:border-line-2 hover:bg-surface-2"
             >
-              Coba dari foto
-              <span className="btn-arrow-loop" aria-hidden="true">
-                <ArrowUpRight className="btn-arrow-loop--front h-full w-full" />
-                <ArrowUpRight className="btn-arrow-loop--back h-full w-full" />
-              </span>
-            </button>
-            <a href="#cara-kerja" className="btn btn-secondary">
               Lihat cara kerja
-              <ArrowDown className="btn-arrow-down h-[1.05rem] w-[1.05rem]" />
             </a>
           </div>
 
-          <p
-            className="reveal mt-5 flex items-center gap-2 text-[0.8125rem] font-medium text-subtle"
-            style={{ '--reveal-delay': '500ms' } as React.CSSProperties}
+          <ul
+            className="rise mt-9 flex flex-wrap gap-x-6 gap-y-3 text-sm text-fg-muted"
+            style={{ '--d': '270ms' } as CSSProperties}
           >
-            <Leaf className="h-4 w-4 text-sage" />
-            Mulai dari bahan yang sudah kamu punya.
-          </p>
+            {TRUST.map((item) => (
+              <li key={item.label} className="flex items-center gap-2">
+                <item.icon className="size-4 text-flame-300" strokeWidth={1.7} />
+                {item.label}
+              </li>
+            ))}
+          </ul>
         </div>
 
-        <div
-          className="reveal hero-stage relative mx-auto w-full max-w-[30rem] sm:max-w-[34rem] lg:max-w-none"
-          style={{ '--reveal-delay': '150ms' } as React.CSSProperties}
-        >
-          <div className="relative isolate">
-            {/* Soft floor shadow directly beneath the appliance */}
-            <div
-              aria-hidden="true"
-              className="fridge-floor-shadow pointer-events-none absolute bottom-[2%] left-1/2 -z-10 h-[7%] w-[78%] rounded-[50%]"
-              style={{
-                background:
-                  'radial-gradient(ellipse at center, rgba(45,48,40,0.20) 0%, rgba(45,48,40,0.09) 45%, rgba(45,48,40,0) 72%)',
-                filter: 'blur(6px)',
-              }}
-            />
+        <div className="relative mx-auto w-full max-w-[24rem] lg:mr-0">
+          <div aria-hidden className="absolute inset-x-6 top-10 bottom-16 -z-10 rounded-[40%] bg-flame-200/25 blur-3xl" />
 
-            <FridgeImage
-              className="relative mx-auto w-full max-w-[26rem] sm:max-w-[29rem] lg:max-w-[31rem] xl:max-w-[34rem]"
-              alt="Kulkas French-door dua pintu yang terisi penuh bahan makanan segar: telur, sayuran, buah, dan botol minuman."
-            />
-
-            <div className="absolute inset-0 mx-auto w-full max-w-[26rem] sm:max-w-[29rem] lg:max-w-[31rem] xl:max-w-[34rem]">
-              {FRIDGE_PINS.map((pin, index) => {
-                const isActive = pinsVisible && pin.id === activePin
-                const exitDelay = (FRIDGE_PINS.length - 1 - index) * 45
-                const enterDelay = index * 45
-                return (
-                  <div
-                    key={pin.id}
-                    className={`absolute transition-opacity duration-300 ${
-                      pinsVisible ? 'opacity-100' : 'pointer-events-none opacity-0'
-                    }`}
-                    style={{
-                      left: `${pin.x}%`,
-                      top: `${pin.y}%`,
-                      transform: 'translate(-50%, -50%)',
-                      transitionDelay: `${pinsVisible ? enterDelay : exitDelay}ms`,
-                      zIndex: isActive ? 20 : 10,
-                    }}
-                    aria-hidden={!pinsVisible}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setActivePin(pin.id)}
-                      aria-pressed={pin.id === activePin}
-                      aria-describedby={helpId}
-                      className={`pin-anim group flex items-center gap-2.5 rounded-full py-1 pl-1 pr-3.5 transition-colors duration-200 ${
-                        pin.side === 'left' ? 'flex-row-reverse pr-1 pl-3.5' : ''
-                      } ${
-                        isActive
-                          ? 'bg-ink text-cream shadow-elevated'
-                          : 'bg-surface/95 text-ink shadow-soft ring-1 ring-hairline hover:bg-surface'
-                      }`}
-                      style={{ '--pin-index': index } as React.CSSProperties}
-                    >
-                      <span
-                        className={`pin-dot-anim relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
-                          isActive ? 'bg-tomato' : 'bg-sage-soft'
-                        }`}
-                      >
-                        <span
-                          className={`h-1.5 w-1.5 rounded-full ${isActive ? 'bg-ink' : 'bg-ink/60'}`}
-                        />
-                        {!isActive && (
-                          <span className="absolute inset-0 rounded-full ring-1 ring-ink/10" />
-                        )}
-                      </span>
-                      <span className="flex flex-col items-start leading-tight">
-                        <span className="text-[0.6875rem] font-bold tracking-[0.01em]">
-                          {pin.label}
-                        </span>
-                        <span
-                          className={`text-[0.625rem] font-medium ${
-                            isActive ? 'text-cream/65' : 'text-subtle'
-                          }`}
-                        >
-                          {pin.detail}
-                        </span>
-                      </span>
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-          <div className="mt-1 flex items-center justify-between gap-3 px-1">
-            <p id={helpId} className="text-[0.6875rem] leading-relaxed text-subtle">
-              Klik label untuk melihat bahan yang terhubung ke resep.
-            </p>
-            <button
-              type="button"
-              onClick={() => setPinsVisible((value) => !value)}
-              aria-pressed={!pinsVisible}
-              className="flex shrink-0 items-center gap-1.5 rounded-full border border-hairline bg-surface/70 px-3 py-1.5 text-[0.6875rem] font-semibold text-muted transition-colors hover:border-strong hover:text-ink"
-            >
-              {pinsVisible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-              {pinsVisible ? 'Sembunyikan label' : 'Tampilkan label'}
-            </button>
-          </div>
-
-          <div
-            aria-live="polite"
-            className="mt-4 rounded-2xl border border-hairline bg-surface p-4 shadow-soft sm:p-5"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-[0.625rem] font-bold uppercase tracking-[0.16em] text-subtle">
-                Bahan → resep
-              </span>
-              <span className="rounded-full bg-sage-soft px-2.5 py-1 text-[0.625rem] font-semibold text-ink">
-                {pinsVisible ? active.detail : 'Label disembunyikan'}
-              </span>
-            </div>
-            <p key={active.id} className="swap-in mt-2 text-[0.9375rem] font-semibold text-ink">
-              {active.label}
-            </p>
-            <ul className="mt-2.5 flex flex-wrap gap-1.5">
-              {active.recipes.map((recipe) => (
-                <li
-                  key={recipe}
-                  className="rounded-full border border-hairline bg-cream px-2.5 py-1 text-[0.6875rem] font-medium text-muted"
-                >
-                  {recipe}
-                </li>
-              ))}
-            </ul>
-          </div>
+          <img
+            src={fridgeImage}
+            alt="Kulkas terbuka berisi bahan segar siap dimasak"
+            width={820}
+            height={1230}
+            className="w-full select-none drop-shadow-[0_28px_50px_rgba(15,23,42,0.22)]"
+            loading="eager"
+            decoding="async"
+          />
         </div>
       </div>
     </section>

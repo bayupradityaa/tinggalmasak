@@ -1,7 +1,2 @@
-/login /index.html 200
-/login/ /index.html 200
-/register /index.html 200
-/register/ /index.html 200
-/auth-preview /login 301
-/auth-preview/ /login 301
-/auth-preview.html /login 301
+/dashboard    /index.html  200
+/dashboard/*  /index.html  200
